@@ -64,8 +64,7 @@ public class TupleValueVertex extends ExpressionVertex {
     log.debug("elaborating tuple value");
 
     MappedArray<String, Value> values = new MappedArray<>();
-    // TODO(nikklassen) this should also be a MappedArray
-    Map<String, TypeValue> types = new HashMap<>();
+    MappedArray<String, TypeValue> types = new MappedArray<>();
 
     for (MappedArray<String, ExpressionEdge>.Entry entry : valueEdges) {
       log.debug("elaborating tuple entry '" + entry.getKey() + "'");

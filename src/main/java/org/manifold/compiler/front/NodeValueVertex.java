@@ -92,14 +92,20 @@ public class NodeValueVertex extends ExpressionVertex {
     inputPortNames.addAll(nodeType.getPorts().keySet());
     MappedArray<String, Value> futurePortMap = new MappedArray<>();
 
-    for (String outputPortName : outputType.getSubtypes().keySet()) {
-      PortTypeValue outputPortType = nodeType.getPorts().get(outputPortName);
-      FuturePortValue futurePort = new FuturePortValue(
-          this, outputPortName, outputPortType);
-      futurePortMap.put(outputPortName, futurePort);
-      inputPortNames.remove(outputPortName);
-      outputPortNames.add(outputPortName);
-    }
+    outputType.getSubtypes().forEach((entry) -> {
+        String outputPortName = entry.getKey();
+        if (outputPortName == null) {
+          throw new FrontendBuildException("The output port name was anonymous for this node. " +
+              "This can be fixed by giving a name to the port.");
+        }
+        PortTypeValue outputPortType = nodeType.getPorts().get(outputPortName);
+        FuturePortValue futurePort = new FuturePortValue(
+            this, outputPortName, outputPortType);
+        futurePortMap.put(outputPortName, futurePort);
+        inputPortNames.remove(outputPortName);
+        outputPortNames.add(outputPortName);
+      }
+    );
     futureOutputPorts = new TupleValue(outputType, futurePortMap);
 
     inputEdge.getSource().elaborate();

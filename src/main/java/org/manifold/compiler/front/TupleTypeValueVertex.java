@@ -109,7 +109,7 @@ public class TupleTypeValueVertex extends ExpressionVertex {
 
   @Override
   public void elaborate() throws Exception {  
-    Map<String, TypeValue> subtypes = new HashMap<>();
+    MappedArray<String, TypeValue> subtypes = new MappedArray<>();
     for (Map.Entry<String, ExpressionEdge> entry : typeValueEdges.entrySet()) {
       ExpressionVertex vSource = entry.getValue().getSource();
       vSource.elaborate();

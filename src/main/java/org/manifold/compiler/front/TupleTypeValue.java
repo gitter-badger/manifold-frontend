@@ -10,11 +10,12 @@ import com.google.common.collect.ImmutableMap;
 
 public class TupleTypeValue extends TypeValue {
 
-  private final Map<String, TypeValue> subtypes;
+  private final MappedArray<String, TypeValue> subtypes;
   // TODO default values
 
-  public Map<String, TypeValue> getSubtypes() {
-    return ImmutableMap.copyOf(subtypes);
+  public MappedArray<String, TypeValue> getSubtypes() {
+    // TODO: immutable copy
+    return MappedArray.copyOf(subtypes);
   }
 
   public int getSize() {
@@ -25,7 +26,7 @@ public class TupleTypeValue extends TypeValue {
     return subtypes.get(i);
   }
 
-  public TupleTypeValue(Map<String, TypeValue> subtypes) {
+  public TupleTypeValue(MappedArray<String, TypeValue> subtypes) {
     this.subtypes = subtypes;
   }
 
@@ -33,7 +34,7 @@ public class TupleTypeValue extends TypeValue {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("( ");
-    for (Map.Entry<String, TypeValue> e : subtypes.entrySet()) {
+    for (MappedArray<String, TypeValue>.Entry e : subtypes) {
       String key = e.getKey();
       TypeValue type = e.getValue();
       sb.append(key).append(":");
@@ -68,6 +69,7 @@ public class TupleTypeValue extends TypeValue {
         return false;
       }
     }
+    // TODO: check the default values for equality
     return true;
   }
 
@@ -83,13 +85,13 @@ public class TupleTypeValue extends TypeValue {
       return getSupertype().isSubtypeOf(other);
     }
     TupleTypeValue oTuple = (TupleTypeValue) other;
-    if (!(getSize() != oTuple.getSize())) {
+    if (getSize() != oTuple.getSize()) {
       return false;
     }
     // type-check subexpressions
     for (int i = 0; i < getSize(); ++i) {
-      TypeValue myType = entry(i).getType();
-      TypeValue otherType = oTuple.entry(i).getType();
+      TypeValue myType = entry(i);
+      TypeValue otherType = oTuple.entry(i);
       if (!myType.isSubtypeOf(otherType)) {
         return false;
       }

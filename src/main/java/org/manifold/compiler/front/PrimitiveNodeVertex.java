@@ -56,16 +56,17 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
   }
 
   private void extractPortTypes(TypeValue type,
-      Map<String, PortTypeValue> portMap) throws TypeMismatchException {
+                                MappedArray<String, PortTypeValue> portMap)
+                                throws TypeMismatchException {
     if (!(type instanceof TupleTypeValue)) {
-      Map<String, TypeValue> x = new HashMap<>();
+      MappedArray<String, TypeValue> x = new MappedArray<>();
       x.put("x", TypeTypeValue.getInstance());
       throw new TypeMismatchException(
           new TupleTypeValue(x),
           type);
     }
     TupleTypeValue tupleType = (TupleTypeValue) type;
-    for (Map.Entry<String, TypeValue> e : tupleType.getSubtypes().entrySet()) {
+    for (MappedArray<String, TypeValue>.Entry e : tupleType.getSubtypes()) {
       // if any type value is NIL, don't construct a port
       if (e.getValue().equals(NilTypeValue.getInstance())) {
         continue;
@@ -85,16 +86,17 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
   }
 
   private void extractAttributes(TypeValue type,
-      Map<String, TypeValue> attrMap) throws TypeMismatchException {
+                                 MappedArray<String, TypeValue> attrMap)
+                                 throws TypeMismatchException {
     if (!(type instanceof TupleTypeValue)) {
-      Map<String, TypeValue> x = new HashMap<>();
+      MappedArray<String, TypeValue> x = new MappedArray<>();
       x.put("x", TypeTypeValue.getInstance());
       throw new TypeMismatchException(
           new TupleTypeValue(x),
           type);
     }
     TupleTypeValue tupleType = (TupleTypeValue) type;
-    for (Map.Entry<String, TypeValue> e : tupleType.getSubtypes().entrySet()) {
+    for (MappedArray<String, TypeValue>.Entry e : tupleType.getSubtypes()) {
       // if any type value is NIL, don't set an attribute
       if (e.getValue().equals(NilTypeValue.getInstance())) {
         continue;
@@ -114,8 +116,8 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
 
   private FunctionTypeValue constructInstantiationSignature(
       FunctionTypeValue oldSig) {
-    Map<String, TypeValue> inputTypes = new HashMap<>();
-    Map<String, TypeValue> outputTypes = new HashMap<>();
+    MappedArray<String, TypeValue> inputTypes = new MappedArray<>();
+    MappedArray<String, TypeValue> outputTypes = new MappedArray<>();
 
     TupleTypeValue oldInputs = (TupleTypeValue) oldSig.getInputType();
     TupleTypeValue oldOutputs = (TupleTypeValue) oldSig.getOutputType();
@@ -127,7 +129,7 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
     // if it does, construct a tuple type value of the form
     // (0: signal type, 1: (attributes)) and add it to the input types.
     // otherwise, only add the signal type to the input types.
-    for (Map.Entry<String, TypeValue> e : oldInputs.getSubtypes().entrySet()) {
+    for (MappedArray<String, TypeValue>.Entry e : oldInputs.getSubtypes()) {
       if (e.getValue().equals(NilTypeValue.getInstance())) {
         continue;
       }
@@ -140,8 +142,11 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
           inputTypes.put(key, port.getSignalType());
         } else {
           // construct (signal type, attributes)
-          TupleTypeValue attrsType = new TupleTypeValue(port.getAttributes());
-          Map<String, TypeValue> sigType = new HashMap<>();
+          // TODO: m-lyons: make PortTypeValue return MappedArray of attributes
+          MappedArray<String, TypeValue> attributes = new MappedArray<>();
+          port.getAttributes().forEach(attributes::put);
+          TupleTypeValue attrsType = new TupleTypeValue(attributes);
+          MappedArray<String, TypeValue> sigType = new MappedArray<>();
           sigType.put("0", port.getSignalType());
           sigType.put("1", attrsType);
           inputTypes.put(key, new TupleTypeValue(sigType));
@@ -157,7 +162,7 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
     // all types encountered here should be Port types;
     // for each one, add the signal type to the output types,
     // and add the attributes, if any exist, as a tuple to the input types.
-    for (Map.Entry<String, TypeValue> e : oldOutputs.getSubtypes().entrySet()) {
+    for (MappedArray<String, TypeValue>.Entry e : oldOutputs.getSubtypes()) {
       if (e.getValue().equals(NilTypeValue.getInstance())) {
         continue;
       }
@@ -165,7 +170,10 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
       PortTypeValue port = (PortTypeValue) e.getValue();
       outputTypes.put(key, port.getSignalType());
       if (!(port.getAttributes().isEmpty())) {
-        inputTypes.put(key, new TupleTypeValue(port.getAttributes()));
+        // TODO: m-lyons: make PortTypeValue return MappedArray of attributes
+        MappedArray<String, TypeValue> attributes = new MappedArray<>();
+        port.getAttributes().forEach(attributes::put);
+        inputTypes.put(key, new TupleTypeValue(attributes));
       }
     }
 
@@ -180,8 +188,8 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
     }
     log.debug("elaborating primitive node");
 
-    Map<String, PortTypeValue> portTypeMap = new HashMap<>();
-    Map<String, TypeValue> attributesMap = new HashMap<>();
+    MappedArray<String, PortTypeValue> portTypeMap = new MappedArray<>();
+    MappedArray<String, TypeValue> attributesMap = new MappedArray<>();
 
     ExpressionVertex portTypeVertex = signatureEdge.getSource();
     portTypeVertex.elaborate();
@@ -215,7 +223,8 @@ public class PrimitiveNodeVertex extends ExpressionVertex {
     log.debug("extracting attributes");
     extractAttributes(portType.getInputType(), attributesMap);
 
-    this.node = new NodeTypeValue(attributesMap, portTypeMap);
+    // TODO: m-lyons: make NodeTypeValue accept MappedArray.
+    this.node = new NodeTypeValue(MappedArray.toMap(attributesMap), MappedArray.toMap(portTypeMap));
     log.debug("constructed node type " + debugNodeType(node));
     this.instantiationSignature = constructInstantiationSignature(portType);
     log.debug("instantiation signature is "

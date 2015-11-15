@@ -68,23 +68,31 @@ public class FunctionValueVertex extends ExpressionVertex {
     TupleTypeValue outputType = (TupleTypeValue) type.getOutputType();
     MappedArray<String, ExpressionEdge> inputEdges = new MappedArray<>();
     MappedArray<String, ExpressionEdge> outputEdges = new MappedArray<>();
-    for (String argName : inputType.getSubtypes().keySet()) {
-      ExpressionEdge e = new ExpressionEdge(null, null); // I know what I'm doing
-      functionBody.addEdge(e);
-      inputEdges.put(argName, e);
-    }
-    for (String argName : outputType.getSubtypes().keySet()) {
-      // "name resolution": look for a variable reference vertex with this name in the subgraph
-      for (Map.Entry<VariableIdentifier, VariableReferenceVertex> vRef
-          : functionBody.getVariableVertices().entrySet()) {
-        if (vRef.getKey().getName().equals(argName)) {
-          ExpressionEdge e = new ExpressionEdge(vRef.getValue(), null);
-          functionBody.addEdge(e);
-          outputEdges.put(argName, e);
-          break;
+    inputType.getSubtypes().forEach((entry) -> {
+        ExpressionEdge e = new ExpressionEdge(null, null); // I know what I'm doing
+        functionBody.addEdge(e);
+        inputEdges.put(entry.getKey(), e);
+      }
+    );
+
+    outputType.getSubtypes().forEach((entry) -> {
+        // "name resolution": look for a variable reference vertex with this name in the subgraph
+        for (Map.Entry<VariableIdentifier, VariableReferenceVertex> vRef
+            : functionBody.getVariableVertices().entrySet()) {
+          if (entry.getKey() == null) {
+            // then the user tried to have an output tuple without named keys
+            throw new FrontendBuildException("The function output type is an anonymous tuple. " +
+                "Give the anonymous value a key to fix this.");
+          }
+          if (vRef.getKey().getName().equals(entry.getKey())) {
+            ExpressionEdge e = new ExpressionEdge(vRef.getValue(), null);
+            functionBody.addEdge(e);
+            outputEdges.put(entry.getKey(), e);
+            break;
+          }
         }
       }
-    }
+    );
     TupleValueVertex vInput = new TupleValueVertex(functionBody, inputEdges);
     functionBody.addVertex(vInput);
     TupleValueVertex vOutput = new TupleValueVertex(functionBody, outputEdges);

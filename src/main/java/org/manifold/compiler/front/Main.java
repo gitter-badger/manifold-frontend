@@ -514,10 +514,10 @@ class ExpressionContextVisitor extends ManifoldBaseVisitor<ExpressionVertex> {
     return v;
   }
 
-  @Override
+  /*@Override
   public ExpressionVertex visitTypeDeclaration(ManifoldParser.TypeDeclarationContext ctx) {
     return visitChildren(ctx);
-  }
+  }*/
 
   @Override
   public ExpressionVertex visitTerminal(TerminalNode node) {
