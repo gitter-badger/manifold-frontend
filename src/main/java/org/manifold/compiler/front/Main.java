@@ -179,6 +179,22 @@ public class Main implements Frontend {
 
   }
 
+  public static void verifyVariables(ExpressionGraph g) throws Exception {
+    // verify that variables are only assigned once and
+    // iterate through all the variables in the graph and verify that
+    // there aren't any type mismatches.
+    log.debug("verifying variables");
+
+    g.verifyVariablesSingleAssignment();
+
+    Map<VariableIdentifier, VariableReferenceVertex> variables = g.getVariableVertices();
+
+    for (Map.Entry<VariableIdentifier, VariableReferenceVertex> entry : variables.entrySet()) {
+      VariableReferenceVertex vertex = entry.getValue();
+      vertex.verify();
+    }
+  }
+
   @Override
   public Schematic invokeFrontend(CommandLine cmd) throws Exception {
 
@@ -240,15 +256,12 @@ public class Main implements Frontend {
     File exprGraphDot = new File(inputFile.getName() + ".exprs.dot");
     exprGraph.writeDOTFile(exprGraphDot);
 
-    exprGraph.verifyVariablesSingleAssignment();
-
-    Schematic schematic = new Schematic(inputFile.getName());
-
+    verifyVariables(exprGraph);
     elaborateFunctions(exprGraph);
     log.debug("writing out expression graph after function elaboration");
     File elaboratedDot = new File(inputFile.getName() + ".elaborated.dot");
     exprGraph.writeDOTFile(elaboratedDot);
-
+    Schematic schematic = new Schematic(inputFile.getName());
     elaborateSchematicTypes(exprGraph, schematic);
     elaborateNodes(exprGraph, schematic);
 
@@ -483,6 +496,27 @@ class ExpressionContextVisitor extends ManifoldBaseVisitor<ExpressionVertex> {
         }
       }
     }
+  }
+
+  @Override
+  public ExpressionVertex visitUndefinedDeclaration(ManifoldParser.UndefinedDeclarationContext ctx) {
+    // get the vertex for the type
+    ExpressionVertex vType = ctx.type().accept(this);
+    VariableIdentifier id = getVariableIdentifier(ctx.namespacedIdentifier());
+    VariableDeclarationVertex v = new VariableDeclarationVertex(exprGraph, id, vType);
+    // shouldn't exist yet
+    try {
+      exprGraph.addVertex(v);
+    } catch (MultipleDefinitionException e) {
+      System.err.println("multiple declarations of variable " + id);
+      throw new ParseCancellationException();
+    }
+    return v;
+  }
+
+  @Override
+  public ExpressionVertex visitTypeDeclaration(ManifoldParser.TypeDeclarationContext ctx) {
+    return visitChildren(ctx);
   }
 
   @Override

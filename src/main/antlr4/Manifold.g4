@@ -54,11 +54,10 @@ typevalue:
   | functionTypeValue # FunctionType
   ;
 
-// TODO: implement type declarations and undefined variable declarations
-//declaration:
-//    type namespacedIdentifier # UndefinedDeclaration
-//  | TYPE_KEYWORD namespacedIdentifier '=' type # TypeDeclaration
-//  ;
+undefinedDeclaration: type namespacedIdentifier;
+//typeDeclaration: TYPE_KEYWORD namespacedIdentifier '=' type;
+
+declaration: undefinedDeclaration ;// | typeDeclaration;
 
 reference:
     tupleValue # Tuple
@@ -83,13 +82,11 @@ rvalue:
   ;
 
 lvalue:
-  // TODO: implement declarations as lvalues
-  // declaration # AssignmentDeclaration
-  reference # LValueExpression
+    undefinedDeclaration # AssignmentDeclaration
+  | reference # LValueExpression
   ;
 
-// TODO: declarations as expressions
-expression: /* declaration | */ rvalue;
+expression: declaration | rvalue;
 
 EXPRESSION_TERMINATOR: ';';
 
