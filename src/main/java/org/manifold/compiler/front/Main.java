@@ -77,6 +77,7 @@ public class Main implements Frontend {
       log.debug("elaborating function "
           + Integer.toString(System.identityHashCode(v)));
       v.elaborate();
+      v.verify();
       log.debug("writing out expression graph at function elaboration step " +
           step);
       File elaboratedDot = new File("tmp.elaborated.step" + step + ".dot");
