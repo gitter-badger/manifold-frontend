@@ -16,15 +16,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.manifold.compiler.BooleanValue;
-import org.manifold.compiler.ConnectionValue;
-import org.manifold.compiler.Frontend;
-import org.manifold.compiler.IntegerValue;
-import org.manifold.compiler.NilTypeValue;
-import org.manifold.compiler.NodeTypeValue;
-import org.manifold.compiler.NodeValue;
-import org.manifold.compiler.PortTypeValue;
-import org.manifold.compiler.UndefinedBehaviourError;
+import org.manifold.compiler.*;
 import org.manifold.compiler.middle.Schematic;
 import org.manifold.parser.ManifoldBaseVisitor;
 import org.manifold.parser.ManifoldLexer;
@@ -36,7 +28,6 @@ import org.manifold.parser.ManifoldParser.TupleTypeValueContext;
 import org.manifold.parser.ManifoldParser.TupleTypeValueEntryContext;
 import org.manifold.parser.ManifoldParser.TupleValueContext;
 import org.manifold.parser.ManifoldParser.TupleValueEntryContext;
-import org.manifold.parser.ManifoldParser.RValueExpressionContext;
 
 import com.google.common.base.Throwables;
 
@@ -464,11 +455,30 @@ class ExpressionContextVisitor extends ManifoldBaseVisitor<ExpressionVertex> {
     VariableIdentifier id = getVariableIdentifier(context);
     if (ReservedIdentifiers.getInstance()
         .isReservedIdentifier(id)) {
+      // try to get previously added vertex
+      if (exprGraph.containsVariable(id)) {
+        try {
+          VariableReferenceVertex v = exprGraph.getVariableVertex(id);
+          return v;
+        } catch (VariableNotDefinedException e) {
+          // cannot actually happen
+          throw Throwables.propagate(e);
+        }
+      }
       // construct a constant value vertex with the identifier's value
       ConstantValueVertex vReserved = new ConstantValueVertex(exprGraph,
           ReservedIdentifiers.getInstance().getValue(id));
       exprGraph.addVertex(vReserved);
-      return vReserved;
+      VariableReferenceVertex v = new VariableReferenceVertex(exprGraph, id);
+      try {
+        exprGraph.addVertex(v);
+      } catch (MultipleDefinitionException e) {
+        System.err.println("multiple definitions of reserved identifier " + id);
+        throw new ParseCancellationException();
+      }
+      ExpressionEdge e = new ExpressionEdge(vReserved, v);
+      exprGraph.addEdge(e);
+      return v;
     } else {
       // this is a variable
       // TODO scope
@@ -515,10 +525,22 @@ class ExpressionContextVisitor extends ManifoldBaseVisitor<ExpressionVertex> {
     return v;
   }
 
-  /*@Override
+  @Override
   public ExpressionVertex visitTypeDeclaration(ManifoldParser.TypeDeclarationContext ctx) {
-    return visitChildren(ctx);
-  }*/
+    ExpressionVertex vTypeKeyword = ctx.TYPE_KEYWORD().accept(this);
+    ExpressionVertex vType = ctx.type().accept(this);
+    VariableIdentifier id = getVariableIdentifier(ctx.namespacedIdentifier());
+    VariableDeclarationVertex v = new VariableDeclarationVertex(exprGraph, id, vTypeKeyword);
+    try {
+      exprGraph.addVertex(v);
+    } catch (MultipleDefinitionException e) {
+      System.err.println("multiple declarations of type " + id);
+      throw new ParseCancellationException();
+    }
+    ExpressionEdge e = new ExpressionEdge(vType, v);
+    exprGraph.addEdge(e);
+    return vType;
+  }
 
   @Override
   public ExpressionVertex visitTerminal(TerminalNode node) {
@@ -531,6 +553,33 @@ class ExpressionContextVisitor extends ManifoldBaseVisitor<ExpressionVertex> {
       ConstantValueVertex v = new ConstantValueVertex(exprGraph,
           BooleanValue.getInstance(Boolean.parseBoolean(node.getText())));
       exprGraph.addVertex(v);
+      return v;
+    } else if (node.getSymbol().getType() == ManifoldLexer.TYPE_KEYWORD) {
+      NamespaceIdentifier empty = new NamespaceIdentifier(Collections.<String>emptyList());
+      VariableIdentifier id = new VariableIdentifier(empty, node.toString());
+      // try to get previously added vertex
+      if (exprGraph.containsVariable(id)) {
+        try {
+          VariableReferenceVertex v = exprGraph.getVariableVertex(id);
+          return v;
+        } catch (VariableNotDefinedException e) {
+          // cannot actually happen
+          throw Throwables.propagate(e);
+        }
+      }
+      // construct a constant value vertex with the identifier's value
+      ConstantValueVertex vReserved = new ConstantValueVertex(exprGraph,
+          ReservedIdentifiers.getInstance().getValue(id));
+      exprGraph.addVertex(vReserved);
+      VariableReferenceVertex v = new VariableReferenceVertex(exprGraph, id);
+      try {
+        exprGraph.addVertex(v);
+      } catch (MultipleDefinitionException e) {
+        System.err.println("multiple definitions of reserved identifier " + id);
+        throw new ParseCancellationException();
+      }
+      ExpressionEdge e = new ExpressionEdge(vReserved, v);
+      exprGraph.addEdge(e);
       return v;
     } else {
       throw new UndefinedBehaviourError(

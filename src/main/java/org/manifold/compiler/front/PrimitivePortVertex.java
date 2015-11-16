@@ -56,6 +56,11 @@ public class PrimitivePortVertex extends ExpressionVertex {
     }
     // check that the signal type is really a type
     ExpressionVertex signalTypeVertex = signalTypeEdge.getSource();
+    try {
+      signalTypeVertex.elaborate();
+    } catch (Exception e) {
+      throw new TypeMismatchException(TypeTypeValue.getInstance(), signalTypeVertex.getType());
+    }
     if (!(signalTypeVertex.getType()
         .isSubtypeOf(TypeTypeValue.getInstance()))) {
       throw new TypeMismatchException(

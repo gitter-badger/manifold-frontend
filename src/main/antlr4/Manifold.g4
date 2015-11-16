@@ -55,9 +55,9 @@ typevalue:
   ;
 
 undefinedDeclaration: type namespacedIdentifier;
-//typeDeclaration: TYPE_KEYWORD namespacedIdentifier '=' type;
+typeDeclaration: TYPE_KEYWORD namespacedIdentifier '=' type;
 
-declaration: undefinedDeclaration ;// | typeDeclaration;
+declaration: undefinedDeclaration | typeDeclaration;
 
 reference:
     tupleValue # Tuple
