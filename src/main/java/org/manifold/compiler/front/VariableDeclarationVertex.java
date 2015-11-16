@@ -47,9 +47,11 @@ public class VariableDeclarationVertex extends VariableReferenceVertex {
     Value value = vType.getValue();
     TypeValue declaredType = TypeAssertions.assertIsType(value);
     // check if assigned value is of the correct declaredType
-    if (!type.isSubtypeOf(declaredType)) {
+    if (!declaredType.isSubtypeOf(type)) {
       throw new TypeMismatchException(declaredType, type);
     }
+
+    type = declaredType;
 
     // if vType == 'Type'
     if (value == TypeTypeValue.getInstance()) {

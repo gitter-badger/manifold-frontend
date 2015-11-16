@@ -40,6 +40,17 @@ public class TypeVariable extends TypeValue {
   }
 
   @Override
+  public boolean isSubtypeOf(TypeValue other) {
+    if (this.equals(other)) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+    return this.getSupertype().isSubtypeOf(other);
+  }
+
+  @Override
   public int hashCode() {
     return getID().hashCode();
   }

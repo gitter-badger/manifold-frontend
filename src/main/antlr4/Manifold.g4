@@ -57,7 +57,7 @@ typevalue:
 undefinedDeclaration: type namespacedIdentifier;
 typeDeclaration: TYPE_KEYWORD namespacedIdentifier '=' type;
 
-declaration: undefinedDeclaration | typeDeclaration;
+declaration: typeDeclaration | undefinedDeclaration;
 
 reference:
     tupleValue # Tuple
@@ -74,9 +74,9 @@ rvalue:
     BOOLEAN_VALUE # Boolean
   | INTEGER_VALUE # Integer
   | functionValue # Function
+  | lvalue '=' rvalue # AssignmentExpression
   | reference rvalue # FunctionInvocationExpression // TODO: function invocation needs to be 'reference arglist'
   | reference # RValueExpression
-  | lvalue '=' rvalue # AssignmentExpression
   | 'primitive' 'port' typevalue (':' tupleTypeValue)? # PrimitivePortDefinitionExpression
   | 'primitive' 'node' functionTypeValue # PrimitiveNodeDefinitionExpression
   ;
